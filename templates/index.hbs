@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{> "partials/includes" }}
+    <title>TODO App</title>
+</head>
+<body class="container">
+    {{> 'partials/header' }}
+
+    <div x-data="todos">
+        <div x-data="{name: ''}" class="row">
+            <div class="column column-90">
+                <input autofocus x-on:keyup="(e) => {
+                    if (e.key != 'Enter') return;
+                    addTodo(name);
+                    name = '';
+                }" x-model="name" type="text" placeholder="Enter the todo name" id="todo-name">
+            </div>
+            <button x-ref="addbtn" x-on:click="() => {
+                addTodo(name);
+                name = '';
+            }" class="column">Add</button>
+        </div>
+
+        <template x-for="item in items">
+            <div x-data="{editmode: false}" class="row" style="align-items: center; gap:30px; margin: 8px auto;">
+                <input x-model="item.completed" style="width: 25px; height:25px;" class="column column-10" type="checkbox">
+                <h4 x-bind:class="item.completed ? 'strikethrough' : ''" x-show="!editmode" class="column column-70" x-text="item.name"></h4>
+                <input x-bind:id="item.id" x-on:keyup="(e) => {
+                    if (e.key != 'Enter') return;
+                    $refs.savebtn.click();
+                    save();
+                }" x-ref="todoinput" x-model="item.name" x-bind:value="item.name" x-show="editmode">
+                <div class="column column-10">
+                    <button x-ref="savebtn" x-bind:disabled="item.completed" x-on:click="(function() {
+                        document.activeElement.blur();
+                        !editmode && document.activeElement.focus();
+                        editmode = !editmode;
+                    })()" x-text="editmode ? 'Done' : 'Edit' ">Edit</button>
+                </div>
+                <div class="column column-10">
+                    <button x-on:click="removeTodo(item.id)">Delete</button>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    {{> 'partials/footer' }}
+</body>
+</html>
+<script>
+    document.addEventListener("alpine:init", () => {
+        Alpine.data('todos', () => ({
+            items: loadFromLocalStorage() || [],
+            removeTodo(id) {
+                this.items = this.items.filter(x => x.id != id);
+                saveToLocalStorage(this.items);
+            },
+            addTodo(name) {
+                this.items.push({
+                    id: Math.random() * 1_000_000,
+                    name,
+                    completed: false,
+                });
+                saveToLocalStorage(this.items);
+            },
+            save() {
+                saveToLocalStorage(this.items);
+            }
+        }));
+    });
+    
+    const key = "_todo_items_";
+    function loadFromLocalStorage() {
+        const items = localStorage.getItem(key);
+        return JSON.parse(items);
+    }
+    function saveToLocalStorage(items) {
+        const data = JSON.stringify(items);
+        localStorage.setItem(key, data);
+    }
+</script>
